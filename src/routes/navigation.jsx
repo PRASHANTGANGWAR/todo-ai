@@ -1,6 +1,6 @@
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
-const NAVIGATION = [
+const   NAVIGATION = [
   {
     segment: "addNotes",
     title: "Add Notes",

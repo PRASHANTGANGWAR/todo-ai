@@ -35,19 +35,15 @@ const iconMap = {
   Tools: <TuneIcon />,
 };
 
-const NoteCard = ({
-  title,
-  description,
-  date,
-  iconType,
-  id,
-  onDelete,
-}) => {
+const NoteCard = ({ title, description, date, iconType, id, onDelete }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openView, setOpenView] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState(title);
+  const [editDescription, setEditDescription] = useState(description);
+  const [openAIModal, setOpenAIModal] = useState(false);
   const [selectedAI, setSelectedAI] = useState([]);
-  const [openAIModal, setOpenAIModal] = useState(false); // State for AI Modal
 
   const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
@@ -61,8 +57,6 @@ const NoteCard = ({
     handleMenuClose();
     setOpenDelete(true);
   };
-
-  const handleCloseDialog = () => setOpenView(false);
 
   const confirmDelete = () => {
     const userId = localStorage.getItem("userId");
@@ -80,24 +74,36 @@ const NoteCard = ({
     return words.slice(0, wordLimit).join(" ") + "...";
   };
 
-  const note = {
-    title,
-    description,
-    date,
-    iconType,
-  };
-  const handleAIModalClose = () => {
-    setOpenAIModal(false);
-  };
+  const handleAIModalClose = () => setOpenAIModal(false);
+  const handleAIClick = () => setOpenAIModal(true);
 
-  const handleAIClick = () => {
-    setOpenAIModal(true);
-  };
   const handleAIFeatureSelection = (selectedFeatures) => {
     setSelectedAI(selectedFeatures);
-    setOpenAIModal(false); // Close the modal after selection
-    console.log("Selected AI Features:", selectedFeatures); // You can process the selected AI features here
+    setOpenAIModal(false);
+    console.log("Selected AI Features:", selectedFeatures);
   };
+
+  const handleEdit = () => {
+    handleMenuClose();
+    setOpenEdit(true);
+  };
+
+  const handleEditSave = () => {
+    const userId = localStorage.getItem("userId");
+    const notesKey = `${userId}-notes`;
+    const storedNotes = JSON.parse(localStorage.getItem(notesKey)) || [];
+
+    const updatedNotes = storedNotes.map((note) =>
+      note.id === id ? { ...note, title: editTitle, description: editDescription } : note
+    );
+
+    localStorage.setItem(notesKey, JSON.stringify(updatedNotes));
+    setOpenEdit(false);
+    window.location.reload(); 
+  };
+
+  const note = { title, description, date, iconType };
+
   return (
     <>
       <Card
@@ -143,7 +149,7 @@ const NoteCard = ({
             variant="contained"
             color="secondary"
             fullWidth
-            onClick={handleAIClick} // Open AI modal on click
+            onClick={handleAIClick}
           >
             AI Analysis
           </Button>
@@ -154,41 +160,60 @@ const NoteCard = ({
         </CardActions>
       </Card>
 
-      {/* Dropdown Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={handleView}>View</MenuItem>
-        <MenuItem onClick={handleMenuClose}>Edit</MenuItem>
+        <MenuItem onClick={handleEdit}>Edit</MenuItem>
         <MenuItem onClick={handleDelete}>Delete</MenuItem>
       </Menu>
 
-      {/* View Dialog */}
-      <Dialog
-        open={openView}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={openView} onClose={() => setOpenView(false)} maxWidth="sm" fullWidth>
         <DialogContent sx={{ maxHeight: "70vh", overflowY: "auto" }}>
           <ViewNoteCard note={note} />
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
+      <Dialog open={openEdit} onClose={() => setOpenEdit(false)} maxWidth="sm" fullWidth>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2}>
+            <Typography variant="h6">Edit Note</Typography>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Title"
+              style={{ padding: "10px", fontSize: "16px" }}
+            />
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={5}
+              placeholder="Description"
+              style={{ padding: "10px", fontSize: "16px" }}
+            />
+            <Box display="flex" justifyContent="flex-end" gap={1}>
+              <Button variant="contained" onClick={() => setOpenEdit(false)} color="error">
+                Cancel
+              </Button>
+              <Button onClick={handleEditSave} variant="contained" color="primary">
+                Save
+              </Button>
+            </Box>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
       <DeleteConfirmationDialog
         open={openDelete}
         onClose={() => setOpenDelete(false)}
         onConfirm={confirmDelete}
       />
+
       <AIFeatureSelectionModal
         open={openAIModal}
         onClose={handleAIModalClose}
         onConfirm={handleAIFeatureSelection}
-        title ={note.title}
-        description ={note.description}
+        title={note.title}
+        description={note.description}
       />
     </>
   );

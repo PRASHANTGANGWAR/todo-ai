@@ -22,13 +22,12 @@ import {
   Group,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 
 const icons = [
   { icon: <InsertEmoticon />, label: "Note" },
   { icon: <CalendarToday />, label: "Calendar" },
   { icon: <Tune />, label: "Settings" },
-  { icon: <Photo />, label: "Photo" },
-  { icon: <CameraAlt />, label: "Camera" },
   { icon: <Group />, label: "Group" },
   { icon: <Settings />, label: "Tools" },
 ];
@@ -50,7 +49,7 @@ const NoteForm = () => {
   const [reminderDate, setReminderDate] = useState(null);
   const [priority, setPriority] = useState("Low");
   const [selectedIconLabel, setSelectedIconLabel] = useState("Note");
-
+  const navigate = useNavigate();
   const handleReset = () => {
     setTitle("");
     setDescription("");
@@ -80,6 +79,8 @@ const NoteForm = () => {
 
     handleReset();
     alert("Note saved!");
+    navigate("/viewNotes"); 
+
   };
 
   return (

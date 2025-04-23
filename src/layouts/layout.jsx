@@ -15,7 +15,7 @@ import NAVIGATION from "../routes/navigation";
 
 export default function DashboardLayoutBasic() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useNavigate("/addNotes");
   const [searchParams] = useSearchParams();
 
   const router = React.useMemo(() => {

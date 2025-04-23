@@ -10,21 +10,24 @@ SmartNotes is a lightweight, AI-powered note-taking web application built with R
 
 This app creatively uses AI to enhance note-taking:
 
-- **🧠 Auto-Generated Titles**: Each note gets a relevant title using AI based on its content.
-- **✂️ Summarization**: AI generates a brief summary (TL;DR) of longer notes.
-- **📝 Follow-Up Suggestions**: Automatically suggests tasks from note content.
+- **🧠 Translate notes to multiple languages**
+- **📝 Sentiment analysis and emoji-based mood indicators**
 
-Powered by the [OpenAI API](https://openai.com/).
+Powered by the [OpenAI API](https://huggingface.com/).
 
 ## 📦 Tech Stack
 
 - **React** – UI library
-- **Tailwind CSS** – Styling
-- **OpenAI API** – AI features
-- **Firebase** – Backend (Firestore) for note storage
+- **MUI** – Component Library
+- **HuggingFace API** – AI features
+- **LocalStorage** – Backend (Firestore) for note storage
 - **Vite** – Build tool for fast development
 
 ## 🔧 Setup Instructions
+
+npm install
+
+npm run dev
 
 ### 1. Clone the repository
 

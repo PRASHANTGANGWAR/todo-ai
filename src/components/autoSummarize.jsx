@@ -15,71 +15,130 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
+  Box,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+let env = import.meta.env.VITE_API_KEY
 
-const AIFeatureSelectionModal = ({
-  open,
-  onClose,
-  onConfirm,
-  title,
-  description,
-}) => {
-  const [selectedFeatures, setSelectedFeatures] = useState([]);
+const AIFeatureSelectionModal = ({ open, onClose, onConfirm, title, description }) => {
+  const [selectedFeature, setSelectedFeature] = useState("");
   const [loading, setLoading] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [error, setError] = useState("");
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
-  const [sourceLang, setSourceLang] = useState("en");
-  const [targetLang, setTargetLang] = useState("fr");
+  const [sourceLang, setSourceLang] = useState("eng_Latn");
+  const [targetLang, setTargetLang] = useState("hin_Deva");
+
+  const navigate = useNavigate();
 
   const features = [
-    "Auto-summarize notes using OpenAI",
-    "Generate a note title or tags based on content",
-    "Classify notes (e.g., Work, Personal, Ideas)",
     "Translate notes to multiple languages",
     "Sentiment analysis and emoji-based mood indicators",
-    "Generate follow-up tasks or reminders from a note",
   ];
 
   const handleFeatureToggle = (feature) => {
-    const isSelected = selectedFeatures.includes(feature);
-    const updated = isSelected
-      ? selectedFeatures.filter((item) => item !== feature)
-      : [...selectedFeatures, feature];
-
-    setSelectedFeatures(updated);
-
-    if (!isSelected && feature === "Translate notes to multiple languages") {
+    setSelectedFeature(feature);
+    if (feature === "Translate notes to multiple languages") {
       setShowLanguageDialog(true);
     }
   };
 
   const handleConfirm = () => {
-    if (selectedFeatures.includes("Auto-summarize notes using OpenAI")) {
-      summarizeText(description);
-    }
-
-    if (selectedFeatures.includes("Translate notes to multiple languages")) {
+    if (selectedFeature === "Translate notes to multiple languages") {
       translateText(description, sourceLang, targetLang);
+    } else if (selectedFeature === "Sentiment analysis and emoji-based mood indicators") {
+      analyzeSentiment(description);
+    } else {
+      onConfirm([selectedFeature]);
     }
-
-    onConfirm(selectedFeatures);
   };
 
+  const translateText = async (text, source, target) => {
 
+    setLoading(true);
+    setError("");
+    try {
+
+      const response = await fetch("https://api-inference.huggingface.co/models/facebook/nllb-200-distilled-600M", {
+        method: "POST",
+        headers: {
+          Authorization:  `Bearer ${env}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: text,
+          parameters: {
+            src_lang: source,
+            tgt_lang: target,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        navigate("/ai-result", {
+          state: {
+            result: data[0].translation_text,
+            feature: selectedFeature,
+          },
+        });
+      } else {
+        throw new Error(data.error || "Failed to translate text");
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const analyzeSentiment = async (text) => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inputs: text }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        const sentiment = data[0]?.[0]?.label || "Unknown";
+        console.log(data[0]?.[0]?.label,'labelllll')
+        const emoji = sentiment === "POSITIVE" ? "😊" : sentiment === "NEGATIVE" ? "😞" : "🤔";
+
+        navigate("/ai-result", {
+          state: {
+            result: `Sentiment: ${sentiment} ${emoji}`,
+            feature: selectedFeature,
+          },
+        });
+      } else {
+        throw new Error(data.error || "Failed to analyze sentiment");
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle>{title || "AI Features"}</DialogTitle>
         <DialogContent>
-          <List>
+          <List sx={{ p: 0 }}>
             {features.map((feature, index) => (
-              <ListItem key={index} button>
+              <ListItem key={index} sx={{ pl: 0 }}>
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={selectedFeatures.includes(feature)}
+                      checked={selectedFeature === feature}
                       onChange={() => handleFeatureToggle(feature)}
                     />
                   }
@@ -90,66 +149,69 @@ const AIFeatureSelectionModal = ({
           </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} color="secondary">
+          <Button onClick={onClose} variant="contained" sx={{ background: "red" }}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} color="primary" disabled={loading}>
+          <Button
+            onClick={handleConfirm}
+            sx={{ color: "white", background: "black", "&:hover": { background: "#333" } }}
+            variant="contained"
+            disabled={loading}
+          >
             Confirm
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for success messages */}
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={() => setOpenSnackbar(false)}
-      >
-        <Alert
-          onClose={() => setOpenSnackbar(false)}
-          severity="success"
-          sx={{ width: "100%" }}
-        >
+      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={() => setOpenSnackbar(false)}>
+        <Alert onClose={() => setOpenSnackbar(false)} severity="success" sx={{ width: "100%" }}>
           Operation completed successfully!
         </Alert>
       </Snackbar>
 
-      {/* Language selection dialog */}
-      <Dialog open={showLanguageDialog} onClose={() => setShowLanguageDialog(false)}>
-        <DialogTitle>Select Source and Target Languages</DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-          <FormControl fullWidth>
-            <InputLabel>Source Language</InputLabel>
-            <Select
-              value={sourceLang}
-              onChange={(e) => setSourceLang(e.target.value)}
-              label="Source Language"
-            >
-              <MenuItem value="eng_Latn">English</MenuItem>
-              <MenuItem value="es">Spanish</MenuItem>
-              <MenuItem value="fr">French</MenuItem>
-              <MenuItem value="hin_Deva">Hindi</MenuItem>
-              <MenuItem value="de">German</MenuItem>
-            </Select>
-          </FormControl>
+      <Dialog open={showLanguageDialog} onClose={() => setShowLanguageDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Select Languages</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} mt={1}>
+            <FormControl fullWidth>
+              <InputLabel>Source Language</InputLabel>
+              <Select
+                value={sourceLang}
+                onChange={(e) => setSourceLang(e.target.value)}
+                label="Source Language"
+              >
+                <MenuItem value="eng_Latn">English</MenuItem>
+                <MenuItem value="spa_Latn">Spanish</MenuItem>
+                <MenuItem value="fra_Latn">French</MenuItem>
+                <MenuItem value="hin_Deva">Hindi</MenuItem>
+                <MenuItem value="arb_Arab">Arabic</MenuItem>
+                <MenuItem value="zho_Hans">Chinese</MenuItem>
+                <MenuItem value="rus_Cyrl">Russian</MenuItem>
+                <MenuItem value="jpn_Jpan">Japanese</MenuItem>
+              </Select>
+            </FormControl>
 
-          <FormControl fullWidth>
-            <InputLabel>Target Language</InputLabel>
-            <Select
-              value={targetLang}
-              onChange={(e) => setTargetLang(e.target.value)}
-              label="Target Language"
-            >
-              <MenuItem value="eng_Latn">English</MenuItem>
-              <MenuItem value="es">Spanish</MenuItem>
-              <MenuItem value="fr">French</MenuItem>
-              <MenuItem value="hin_Deva">Hindi</MenuItem>
-              <MenuItem value="de">German</MenuItem>
-            </Select>
-          </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Target Language</InputLabel>
+              <Select
+                value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}
+                label="Target Language"
+              >
+                <MenuItem value="eng_Latn">English</MenuItem>
+                <MenuItem value="spa_Latn">Spanish</MenuItem>
+                <MenuItem value="fra_Latn">French</MenuItem>
+                <MenuItem value="hin_Deva">Hindi</MenuItem>
+                <MenuItem value="arb_Arab">Arabic</MenuItem>
+                <MenuItem value="zho_Hans">Chinese</MenuItem>
+                <MenuItem value="rus_Cyrl">Russian</MenuItem>
+                <MenuItem value="jpn_Jpan">Japanese</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowLanguageDialog(false)} color="primary">
+          <Button variant="contained" onClick={() => setShowLanguageDialog(false)} color="primary">
             Done
           </Button>
         </DialogActions>

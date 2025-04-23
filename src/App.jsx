@@ -1,9 +1,8 @@
-import { useRoutes } from "react-router-dom";
-import DashboardLayoutBasic from "./layouts/layout"; // or ./layouts/DashboardLayoutBasic
-import AddNotes from "./pages/addNote";
+import { useRoutes, Navigate } from "react-router-dom";
+import DashboardLayoutBasic from "./layouts/layout";
 import NoteForm from "./pages/addNote";
-import NoteCard from "./components/noteCard";
 import ViewNotes from "./pages/viewNotes";
+import AIResultPage from "./pages/aiResult";
 
 function App() {
   const routes = useRoutes([
@@ -12,13 +11,21 @@ function App() {
       element: <DashboardLayoutBasic />,
       children: [
         {
+          index: true,
+          element: <Navigate to="addNotes" replace />,
+        },
+        {
           path: "addNotes",
           element: <NoteForm />,
         },
         {
-          path:"viewNotes",
-          element:<ViewNotes/>
-        }
+          path: "viewNotes",
+          element: <ViewNotes />,
+        },
+        {
+          path: "ai-result",
+          element: <AIResultPage />,
+        },
       ],
     },
   ]);
